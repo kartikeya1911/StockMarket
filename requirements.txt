@@ -1,0 +1,28 @@
+# Core Dependencies
+streamlit==1.32.0
+pandas==2.2.0
+numpy==1.26.3
+
+# Data Fetching
+yfinance==0.2.36
+
+# Visualization
+plotly==5.18.0
+matplotlib==3.8.2
+
+# Machine Learning
+scikit-learn==1.4.0
+
+# Technical Indicators
+ta==0.11.0
+
+# News and Sentiment Analysis
+newsapi-python==0.2.7
+textblob==0.18.0
+requests==2.31.0
+
+# Database
+sqlite3  # Built-in with Python
+
+# Additional Utilities
+python-dateutil==2.8.2
