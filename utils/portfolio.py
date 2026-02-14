@@ -82,7 +82,8 @@ class PortfolioManager:
     
     def add_stock(self, ticker, quantity, purchase_price, purchase_date=None):
         """
-        Add a stock to the portfolio
+        Add a stock to the portfolio or update if it already exists
+        If ticker exists, it averages the purchase price and adds quantities
         
         Args:
             ticker (str): Stock ticker symbol
@@ -107,21 +108,49 @@ class PortfolioManager:
             if purchase_date is None:
                 purchase_date = datetime.now().strftime('%Y-%m-%d')
             
-            # Calculate total investment
-            total_investment = quantity * purchase_price
+            ticker_upper = ticker.upper()
             
-            # Create new entry
-            new_entry = pd.DataFrame({
-                'Ticker': [ticker.upper()],
-                'Company_Name': [company_name],
-                'Quantity': [quantity],
-                'Purchase_Price': [purchase_price],
-                'Purchase_Date': [purchase_date],
-                'Total_Investment': [total_investment]
-            })
+            # Check if stock already exists in portfolio
+            existing_stocks = self.portfolio[self.portfolio['Ticker'] == ticker_upper]
             
-            # Add to portfolio
-            self.portfolio = pd.concat([self.portfolio, new_entry], ignore_index=True)
+            if not existing_stocks.empty:
+                # Stock exists - average the purchase price and add quantities
+                idx = existing_stocks.index[0]
+                existing_qty = self.portfolio.at[idx, 'Quantity']
+                existing_price = self.portfolio.at[idx, 'Purchase_Price']
+                existing_investment = self.portfolio.at[idx, 'Total_Investment']
+                
+                # Calculate new totals
+                new_investment = quantity * purchase_price
+                total_investment = existing_investment + new_investment
+                total_quantity = existing_qty + quantity
+                
+                # Calculate weighted average price
+                avg_purchase_price = total_investment / total_quantity
+                
+                # Update existing entry
+                self.portfolio.at[idx, 'Quantity'] = total_quantity
+                self.portfolio.at[idx, 'Purchase_Price'] = avg_purchase_price
+                self.portfolio.at[idx, 'Total_Investment'] = total_investment
+                self.portfolio.at[idx, 'Purchase_Date'] = purchase_date  # Update to latest date
+                
+                st.info(f"📊 Updated {ticker_upper}: Added {quantity} shares at {format_currency(purchase_price)}. "
+                       f"New average price: {format_currency(avg_purchase_price)}, Total quantity: {total_quantity}")
+            else:
+                # New stock - add to portfolio
+                total_investment = quantity * purchase_price
+                
+                new_entry = pd.DataFrame({
+                    'Ticker': [ticker_upper],
+                    'Company_Name': [company_name],
+                    'Quantity': [quantity],
+                    'Purchase_Price': [purchase_price],
+                    'Purchase_Date': [purchase_date],
+                    'Total_Investment': [total_investment]
+                })
+                
+                # Add to portfolio
+                self.portfolio = pd.concat([self.portfolio, new_entry], ignore_index=True)
             
             # Save to file
             return self.save_portfolio()
@@ -130,22 +159,28 @@ class PortfolioManager:
             st.error(f"Error adding stock to portfolio: {str(e)}")
             return False
     
-    def remove_stock(self, index):
+    def remove_stock(self, ticker):
         """
-        Remove a stock from the portfolio by index
+        Remove a stock from the portfolio by ticker symbol
         
         Args:
-            index (int): Index of the stock to remove
+            ticker (str): Stock ticker symbol to remove
         
         Returns:
             bool: True if successful
         """
         try:
-            if index < 0 or index >= len(self.portfolio):
-                st.error("Invalid index")
+            ticker_upper = ticker.upper()
+            
+            # Find the stock
+            stock_mask = self.portfolio['Ticker'] == ticker_upper
+            
+            if not stock_mask.any():
+                st.error(f"Stock {ticker_upper} not found in portfolio")
                 return False
             
-            self.portfolio = self.portfolio.drop(index).reset_index(drop=True)
+            # Remove the stock
+            self.portfolio = self.portfolio[~stock_mask].reset_index(drop=True)
             return self.save_portfolio()
         
         except Exception as e:

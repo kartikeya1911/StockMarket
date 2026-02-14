@@ -119,7 +119,6 @@ CHART_TEMPLATE = "plotly_white"
 
 # Sidebar options
 SIDEBAR_OPTIONS = [
-    "🏠 Home",
     "📊 My Dashboard",
     "📈 Stock Analysis",
     "🔮 Price Prediction",

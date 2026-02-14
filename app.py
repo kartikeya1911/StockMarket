@@ -7,7 +7,7 @@ import streamlit as st
 import config
 
 # Import page modules
-from pages import home, dashboard, stock_analysis, prediction, technical_indicators, portfolio_tracker, news_sentiment
+from pages import dashboard, stock_analysis, prediction, technical_indicators, portfolio_tracker, news_sentiment
 
 # Page configuration
 st.set_page_config(
@@ -157,9 +157,7 @@ def main():
         """, unsafe_allow_html=True)
     
     # Route to appropriate page
-    if page == "🏠 Home":
-        home.show()
-    elif page == "📊 My Dashboard":
+    if page == "📊 My Dashboard":
         dashboard.show()
     elif page == "📈 Stock Analysis":
         stock_analysis.show()

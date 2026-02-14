@@ -39,13 +39,31 @@ class NewsFetcher:
             if self.api_key == "YOUR_API_KEY_HERE":
                 return self._get_sample_news(ticker)
             
+            # Remove exchange suffix for better news search
+            # Indian stocks: .NS (NSE), .BO (BSE)
+            # US stocks typically don't have suffixes
+            search_ticker = ticker.split('.')[0]  # Remove .NS, .BO, etc.
+            
+            # Try to get company name for better search results
+            try:
+                from utils.stock_data import StockDataFetcher
+                fetcher = StockDataFetcher(ticker)
+                stock_info = fetcher.get_stock_info()
+                if stock_info and stock_info.get('name'):
+                    # Use company name for more relevant news
+                    search_query = stock_info['name']
+                else:
+                    search_query = search_ticker
+            except:
+                search_query = search_ticker
+            
             # Calculate date range
             to_date = datetime.now()
             from_date = to_date - timedelta(days=days_back)
             
             # Prepare parameters
             params = {
-                'q': ticker,
+                'q': search_query,
                 'from': from_date.strftime('%Y-%m-%d'),
                 'to': to_date.strftime('%Y-%m-%d'),
                 'language': config.NEWS_LANGUAGE,
@@ -78,23 +96,26 @@ class NewsFetcher:
         Returns:
             list: Sample news articles
         """
+        # Remove exchange suffix for display
+        display_ticker = ticker.split('.')[0]
+        
         return [
             {
-                'title': f'{ticker} Stock Analysis and Market Trends',
+                'title': f'{display_ticker} Stock Analysis and Market Trends',
                 'description': 'Market analysts discuss recent performance and future outlook.',
                 'url': '#',
                 'publishedAt': datetime.now().isoformat(),
                 'source': {'name': 'Sample News'}
             },
             {
-                'title': f'Investment Outlook for {ticker}',
+                'title': f'Investment Outlook for {display_ticker}',
                 'description': 'Experts share insights on investment strategies.',
                 'url': '#',
                 'publishedAt': (datetime.now() - timedelta(days=1)).isoformat(),
                 'source': {'name': 'Sample News'}
             },
             {
-                'title': f'{ticker} Quarterly Earnings Report',
+                'title': f'{display_ticker} Quarterly Earnings Report',
                 'description': 'Company releases quarterly financial results.',
                 'url': '#',
                 'publishedAt': (datetime.now() - timedelta(days=2)).isoformat(),
