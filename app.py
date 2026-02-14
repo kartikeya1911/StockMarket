@@ -1,6 +1,16 @@
 """
-Main Application File
 Stock Market Analysis and Prediction Web Application
+
+A comprehensive Streamlit-based application for stock market analysis, featuring:
+- Real-time stock data and analysis
+- Machine Learning price predictions (Linear Regression, Random Forest)
+- Technical indicators (RSI, MACD, Bollinger Bands, Moving Averages)
+- Portfolio tracking with automatic averaging
+- News aggregation with sentiment analysis
+- Interactive Plotly visualizations
+
+Version: 2.0.0
+Landing Page: Dashboard (Portfolio Overview)
 """
 
 import streamlit as st

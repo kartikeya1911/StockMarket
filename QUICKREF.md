@@ -81,7 +81,7 @@ pip install --upgrade -r requirements.txt
 - `charts.py` - Chart creation
 
 ### Pages Folder
-- `home.py` - Home page
+- `dashboard.py` - Dashboard (Landing page)
 - `stock_analysis.py` - Stock analysis
 - `prediction.py` - Price prediction
 - `technical_indicators.py` - Technical indicators
@@ -144,6 +144,40 @@ streamlit cache clear
 2. Use appropriate time periods
 3. Close unused pages
 4. Clear cache periodically
+
+### For Portfolio Management
+1. Add stocks gradually
+2. Use delete button (🗑️) to remove stocks
+3. Same stock added twice? Automatically averaged!
+4. Keep track of purchase dates
+5. Monitor gain/loss percentage regularly
+
+## Portfolio Features
+
+### Adding Stocks
+- Enter ticker, quantity, price, date
+- Click "Add to Portfolio"
+- **Auto-Averaging**: Same stock added multiple times is automatically averaged
+  - Formula: `Avg Price = (Old Investment + New Investment) / Total Quantity`
+  - Example: 10 shares @ $100 + 5 shares @ $130 = 15 shares @ $110
+
+### Removing Stocks
+- Click 🗑️ button next to stock
+- No confirmation needed
+- Portfolio updates instantly
+
+### Portfolio Metrics
+- **Total Investment**: Sum of all purchase amounts
+- **Current Value**: Real-time market value
+- **Total Gain/Loss**: Profit or loss in $ and %
+- **Number of Holdings**: Total unique stocks
+- **Risk Level**: Based on portfolio concentration
+
+### Indian Stock Tips
+- Always add .NS for NSE stocks
+- Always add .BO for BSE stocks  
+- Example: RELIANCE.NS, TCS.NS
+- News automatically fetches using company names
 
 ## Useful Links
 

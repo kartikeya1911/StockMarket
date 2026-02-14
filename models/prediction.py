@@ -221,19 +221,24 @@ class StockPredictor:
                 st.error("Please train a model first")
                 return None
             
-            # Get the last known values
-            last_row = self.features.iloc[-1].copy()
+            # Get the last known values from the full dataset
             last_date = self.data['Date'].iloc[-1]
-            last_close = self.data['Close'].iloc[-1]
+            
+            # Get recent closing prices for calculating moving averages
+            recent_closes = list(self.data['Close'].tail(20).values)
             
             predictions = []
             dates = []
+            
+            # Get the last feature row as a starting point
+            last_row = self.features.iloc[-1].copy()
+            base_days = last_row['Days']
             
             # Make predictions for future days
             for i in range(1, days + 1):
                 # Create feature vector for prediction
                 future_features = last_row.copy()
-                future_features['Days'] = last_row['Days'] + i
+                future_features['Days'] = base_days + i
                 
                 # Predict
                 predicted_price = self.model.predict([future_features.values])[0]
@@ -243,11 +248,31 @@ class StockPredictor:
                 future_date = last_date + timedelta(days=i)
                 dates.append(future_date)
                 
-                # Update moving features for next prediction
-                # (Simple approach - can be improved)
-                last_row['MA_5'] = predicted_price
-                last_row['MA_10'] = predicted_price
-                last_row['MA_20'] = predicted_price
+                # Add predicted price to recent closes for next iteration
+                recent_closes.append(predicted_price)
+                
+                # Update moving averages using the rolling window of recent prices
+                if len(recent_closes) >= 20:
+                    future_features['MA_20'] = np.mean(recent_closes[-20:])
+                if len(recent_closes) >= 10:
+                    future_features['MA_10'] = np.mean(recent_closes[-10:])
+                if len(recent_closes) >= 5:
+                    future_features['MA_5'] = np.mean(recent_closes[-5:])
+                
+                # Update volatility (standard deviation of recent prices)
+                if len(recent_closes) >= 10:
+                    future_features['Volatility'] = np.std(recent_closes[-10:])
+                
+                # Update daily return
+                if len(recent_closes) >= 2:
+                    future_features['Daily_Return'] = (recent_closes[-1] - recent_closes[-2]) / recent_closes[-2]
+                
+                # Update last_row for next iteration
+                last_row = future_features.copy()
+                
+                # Keep recent_closes list manageable
+                if len(recent_closes) > 30:
+                    recent_closes = recent_closes[-30:]
             
             # Create DataFrame with predictions
             future_df = pd.DataFrame({

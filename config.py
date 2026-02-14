@@ -1,6 +1,15 @@
 """
 Configuration file for Stock Market Analysis Application
-Contains all global settings, constants, and API keys
+
+Contains all global settings, constants, and API keys:
+- Application metadata and UI settings
+- Stock data and prediction parameters
+- Technical indicator configurations
+- Portfolio management settings
+- News API credentials
+- Theme colors and styling
+
+Version: 2.0.0 - Major rewrite with portfolio enhancements
 """
 
 import os
@@ -11,7 +20,7 @@ from datetime import datetime, timedelta
 # Application metadata
 APP_TITLE = "📈 Stock Market Analysis & Prediction"
 APP_ICON = "📊"
-APP_VERSION = "1.0.0"
+APP_VERSION = "2.0.0"
 
 # Currency settings
 CURRENCY_SYMBOL = "₹"  # Indian Rupee
