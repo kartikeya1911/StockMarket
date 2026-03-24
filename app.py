@@ -115,12 +115,18 @@ def main():
     # Sidebar navigation with enhanced UI
     st.sidebar.markdown("<h1 style='color: white; text-align: center;'>🎯 Navigation</h1>", unsafe_allow_html=True)
     st.sidebar.markdown("<hr style='border: 1px solid rgba(255,255,255,0.2);'>", unsafe_allow_html=True)
+
+    # Stable selection to avoid session_state KeyError across reruns
+    if "page_choice" not in st.session_state:
+        st.session_state["page_choice"] = config.SIDEBAR_OPTIONS[0]
     
     # Page selection
     page = st.sidebar.radio(
         "Select a page:",
         config.SIDEBAR_OPTIONS,
-        label_visibility="collapsed"
+        label_visibility="collapsed",
+        index=config.SIDEBAR_OPTIONS.index(st.session_state["page_choice"]),
+        key="page_choice"
     )
     
     st.sidebar.markdown("---")

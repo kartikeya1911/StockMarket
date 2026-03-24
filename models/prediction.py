@@ -50,6 +50,10 @@ class StockPredictor:
         try:
             # Sort by date
             df = self.data.sort_values('Date').reset_index(drop=True)
+
+            # Fill missing base columns to avoid NaNs in features/predictions
+            base_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
+            df[base_cols] = df[base_cols].ffill().bfill()
             
             # Create feature columns
             df['Days'] = range(len(df))
@@ -220,12 +224,17 @@ class StockPredictor:
             if self.model is None:
                 st.error("Please train a model first")
                 return None
+
+            if self.features is None or self.features.empty:
+                st.error("No features available for prediction. Please prepare and split data again.")
+                return None
             
             # Get the last known values from the full dataset
-            last_date = self.data['Date'].iloc[-1]
+            last_date = pd.to_datetime(self.data['Date']).iloc[-1]
             
             # Get recent closing prices for calculating moving averages
-            recent_closes = list(self.data['Close'].tail(20).values)
+            closes_clean = pd.Series(self.data['Close']).ffill().bfill()
+            recent_closes = list(closes_clean.tail(20).values)
             
             predictions = []
             dates = []
