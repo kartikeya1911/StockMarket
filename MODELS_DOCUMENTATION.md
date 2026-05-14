@@ -1,7 +1,7 @@
 # Machine Learning Models & Techniques Documentation
 
 ## Overview
-This document outlines all the machine learning models, algorithms, and analytical techniques used in the StockMarket application.
+This document outlines all the machine learning models, algorithms, and analytical techniques used in the QuantEdge platform.
 
 ---
 
@@ -297,7 +297,7 @@ This document outlines all the machine learning models, algorithms, and analytic
 
 ## Summary
 
-This StockMarket application uses a combination of:
+This QuantEdge platform uses a combination of:
 - **2 Supervised Learning Models** (Linear Regression, Random Forest)
 - **1 NLP Technique** (TextBlob Sentiment Analysis)
 - **10+ Technical Indicators** for feature engineering
@@ -309,3 +309,4 @@ All working together to provide comprehensive stock analysis and prediction capa
 
 *Last Updated: February 26, 2026*
 *Python Version: 3.13.9*
+

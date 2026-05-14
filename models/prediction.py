@@ -492,3 +492,4 @@ def simple_moving_average_prediction(data, window=20, periods=30):
     
     except Exception as e:
         return None
+

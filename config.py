@@ -1,52 +1,70 @@
 """
-Configuration file for Stock Market Analysis Application
+Configuration for QuantEdge — Stock Market Intelligence Platform
 
-Contains all global settings, constants, and API keys:
-- Application metadata and UI settings
-- Stock data and prediction parameters
-- Technical indicator configurations
-- Portfolio management settings
-- News API credentials
-- Theme colors and styling
+Centralized settings for all modules: UI, data fetching, ML, technical analysis,
+portfolio management, news/sentiment, and market overview.
 
-Version: 2.0.0 - Major rewrite with portfolio enhancements
+Version: 4.0.0
 """
 
 import os
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
 # ==================== APPLICATION SETTINGS ====================
 
-# Application metadata
-APP_TITLE = "📈 Stock Market Analysis & Prediction"
+APP_TITLE = "QuantEdge"
+APP_SUBTITLE = "Stock Market Intelligence Platform"
 APP_ICON = "📊"
-APP_VERSION = "2.0.0"
+APP_VERSION = "4.0.0"
+APP_AUTHOR = "QuantEdge"
 
-# Currency settings
-CURRENCY_SYMBOL = "₹"  # Indian Rupee
+# Currency
+CURRENCY_SYMBOL = "₹"
 CURRENCY_NAME = "INR"
 
-# Page configuration
-PAGE_TITLE = "Stock Market Analyzer"
-PAGE_ICON = "📈"
+# Page config
+PAGE_TITLE = "QuantEdge — Stock Intelligence"
+PAGE_ICON = "📊"
 LAYOUT = "wide"
+
+# ==================== NAVIGATION ====================
+
+SIDEBAR_OPTIONS = [
+    "📊 Dashboard",
+    "🔍 Stock Analysis",
+    "🤖 AI Intelligence",
+    "📉 Technical Indicators",
+    "🔮 Price Prediction",
+    "💼 Portfolio Tracker",
+    "📰 News & Sentiment",
+]
+
+# ==================== MARKET INDICES ====================
+
+MARKET_INDICES = {
+    "NIFTY 50": "^NSEI",
+    "SENSEX": "^BSESN",
+    "BANK NIFTY": "^NSEBANK",
+    "NIFTY IT": "^CNXIT",
+    "S&P 500": "^GSPC",
+    "NASDAQ": "^IXIC",
+    "DOW JONES": "^DJI",
+}
 
 # ==================== DATA SETTINGS ====================
 
-# Default stock symbols for quick access
 DEFAULT_STOCKS = [
     "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA",
     "META", "NVDA", "JPM", "V", "WMT"
 ]
 
-# Indian stock examples
 INDIAN_STOCKS = [
     "RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS",
     "ICICIBANK.NS", "SBIN.NS", "BHARTIARTL.NS"
 ]
 
-# Time period options for data fetching
-TIME_PERIODS = {
+TIME_PERIODS: Dict[str, str] = {
     "1 Month": "1mo",
     "3 Months": "3mo",
     "6 Months": "6mo",
@@ -56,96 +74,116 @@ TIME_PERIODS = {
     "Max": "max"
 }
 
-# Data intervals
-DATA_INTERVALS = {
+DATA_INTERVALS: Dict[str, str] = {
     "1 Day": "1d",
     "1 Week": "1wk",
     "1 Month": "1mo"
 }
 
-# ==================== MACHINE LEARNING SETTINGS ====================
+# ==================== MACHINE LEARNING ====================
 
-# Prediction settings
-PREDICTION_DAYS = 30  # Number of days to predict into the future
-TRAIN_TEST_SPLIT = 0.8  # 80% training, 20% testing
+PREDICTION_DAYS = 30
+TRAIN_TEST_SPLIT = 0.8
 RANDOM_STATE = 42
+LOOKBACK_DAYS = 60
 
-# Feature engineering
-LOOKBACK_DAYS = 60  # Days to look back for feature creation
+# ==================== TECHNICAL INDICATORS ====================
 
-# ==================== TECHNICAL INDICATORS SETTINGS ====================
-
-# Moving Averages
-MA_SHORT_PERIOD = 50   # Short-term moving average
-MA_LONG_PERIOD = 200   # Long-term moving average
-
-# RSI Settings
+MA_SHORT_PERIOD = 50
+MA_LONG_PERIOD = 200
 RSI_PERIOD = 14
 RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
-
-# MACD Settings
 MACD_FAST = 12
 MACD_SLOW = 26
 MACD_SIGNAL = 9
-
-# Bollinger Bands Settings
 BB_PERIOD = 20
 BB_STD_DEV = 2
+ADX_PERIOD = 14
+ATR_PERIOD = 14
+STOCH_RSI_PERIOD = 14
+SUPERTREND_PERIOD = 10
+SUPERTREND_MULTIPLIER = 3.0
 
-# ==================== PORTFOLIO SETTINGS ====================
+# ==================== RECOMMENDATION ENGINE WEIGHTS ====================
 
-# Portfolio data file
+RECOMMENDATION_WEIGHTS = {
+    "technical": 0.30,
+    "fundamental": 0.25,
+    "sentiment": 0.15,
+    "ai_prediction": 0.20,
+    "risk": 0.10,
+}
+
+RECOMMENDATION_LABELS = {
+    (80, 100): "Strong Buy",
+    (60, 80): "Buy",
+    (40, 60): "Hold",
+    (20, 40): "Sell",
+    (0, 20): "Strong Sell",
+}
+
+# ==================== PORTFOLIO ====================
+
 PORTFOLIO_FILE = "data/portfolio.csv"
 PORTFOLIO_DB = "data/portfolio.db"
 
-# ==================== NEWS API SETTINGS ====================
+# ==================== NEWS / SENTIMENT ====================
 
-# News API Key (Get free key from: https://newsapi.org/)
-# Replace with your own API key
 NEWS_API_KEY = os.getenv("NEWS_API_KEY", "838652a71b7b424c84c4b84dca58978a")
-
-# News settings
 NEWS_SOURCES = "bloomberg,reuters,financial-times,the-wall-street-journal"
 NEWS_LANGUAGE = "en"
 MAX_NEWS_ARTICLES = 10
 
 # ==================== CHART SETTINGS ====================
 
-# Color scheme
 CHART_COLORS = {
-    "primary": "#1f77b4",
-    "positive": "#2ecc71",
-    "negative": "#e74c3c",
-    "neutral": "#95a5a6",
-    "accent": "#f39c12"
+    "primary": "#00D4FF",
+    "positive": "#00C853",
+    "negative": "#FF5252",
+    "neutral": "#78909C",
+    "accent": "#FFD740",
+    "info": "#448AFF",
+    "warning": "#FF9100",
+    "bg_dark": "#0A0E27",
+    "card_bg": "rgba(15, 20, 50, 0.85)",
+    "border": "rgba(255, 255, 255, 0.06)",
 }
 
-# Chart template
-CHART_TEMPLATE = "plotly_white"
+CHART_TEMPLATE = "plotly_dark"
 
-# ==================== UI SETTINGS ====================
+# ==================== UI THEME ====================
 
-# Sidebar options
-SIDEBAR_OPTIONS = [
-    "📊 My Dashboard",
-    "📈 Stock Analysis",
-    "🔮 Price Prediction",
-    "📉 Technical Indicators",
-    "💼 Portfolio Tracker",
-    "📰 News & Sentiment"
-]
+THEME = {
+    "bg_primary": "#0A0E27",
+    "bg_secondary": "#111633",
+    "bg_card": "rgba(15, 20, 50, 0.85)",
+    "text_primary": "#E8EAF6",
+    "text_secondary": "#78909C",
+    "accent_1": "#00D4FF",
+    "accent_2": "#00C853",
+    "accent_3": "#FF5252",
+    "gradient_1": "linear-gradient(135deg, #00D4FF 0%, #0091EA 100%)",
+    "gradient_2": "linear-gradient(135deg, #00C853 0%, #00897B 100%)",
+    "gradient_3": "linear-gradient(135deg, #FF5252 0%, #D50000 100%)",
+    "gradient_gold": "linear-gradient(135deg, #FFD740 0%, #FF9100 100%)",
+    "glass": "rgba(15, 20, 50, 0.85)",
+    "glass_border": "rgba(255, 255, 255, 0.06)",
+    "blur": "20px",
+    "radius": "14px",
+    "font_family": "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+}
 
-# Loading messages
+# ==================== MESSAGES ====================
+
 LOADING_MESSAGES = {
     "fetching_data": "Fetching stock data...",
     "analyzing": "Analyzing stock...",
     "predicting": "Generating predictions...",
     "calculating": "Calculating indicators...",
-    "loading_news": "Loading latest news..."
+    "loading_news": "Loading latest news...",
+    "ai_analysis": "Running AI analysis engine...",
 }
-
-# ==================== ERROR MESSAGES ====================
 
 ERROR_MESSAGES = {
     "invalid_ticker": "❌ Invalid stock ticker. Please enter a valid symbol.",
@@ -153,45 +191,25 @@ ERROR_MESSAGES = {
     "api_error": "❌ Error fetching data. Please try again later.",
     "prediction_error": "❌ Error generating predictions.",
     "portfolio_error": "❌ Error managing portfolio.",
-    "news_error": "❌ Error fetching news. Check your API key."
+    "news_error": "❌ Error fetching news. Check your API key.",
 }
-
-# ==================== SUCCESS MESSAGES ====================
 
 SUCCESS_MESSAGES = {
     "data_loaded": "✅ Data loaded successfully!",
     "prediction_complete": "✅ Predictions generated successfully!",
     "portfolio_updated": "✅ Portfolio updated successfully!",
-    "stock_added": "✅ Stock added to portfolio!"
+    "stock_added": "✅ Stock added to portfolio!",
 }
 
-# ==================== HELPER FUNCTIONS ====================
+# ==================== HELPERS ====================
 
-def get_date_range(period):
-    """
-    Calculate start and end dates based on period
-    
-    Args:
-        period (str): Time period (e.g., '1y', '6mo')
-    
-    Returns:
-        tuple: (start_date, end_date)
-    """
+def get_date_range(period: str):
+    """Calculate start and end dates based on period string."""
     end_date = datetime.now()
-    
-    if period == "1mo":
-        start_date = end_date - timedelta(days=30)
-    elif period == "3mo":
-        start_date = end_date - timedelta(days=90)
-    elif period == "6mo":
-        start_date = end_date - timedelta(days=180)
-    elif period == "1y":
-        start_date = end_date - timedelta(days=365)
-    elif period == "2y":
-        start_date = end_date - timedelta(days=730)
-    elif period == "5y":
-        start_date = end_date - timedelta(days=1825)
-    else:  # max
-        start_date = end_date - timedelta(days=3650)  # 10 years
-    
+    period_days = {
+        "1mo": 30, "3mo": 90, "6mo": 180,
+        "1y": 365, "2y": 730, "5y": 1825, "max": 3650,
+    }
+    days = period_days.get(period, 3650)
+    start_date = end_date - timedelta(days=days)
     return start_date, end_date

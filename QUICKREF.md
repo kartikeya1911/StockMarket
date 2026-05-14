@@ -245,3 +245,4 @@ MAX_NEWS_ARTICLES = 10
 ---
 
 **Quick Start: `streamlit run app.py`** 🚀
+

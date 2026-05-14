@@ -1,20 +1,15 @@
 """
-Pages Package
-Contains all page modules for the application
+Pages package for QuantEdge.
+Each module exposes a show() function that renders the page.
 """
 
-from . import dashboard
-from . import stock_analysis
-from . import prediction
-from . import technical_indicators
-from . import portfolio_tracker
-from . import news_sentiment
+from pages import (
+    dashboard,
+    stock_analysis,
+    prediction,
+    technical_indicators,
+    portfolio_tracker,
+    news_sentiment,
+    ai_intelligence,
+)
 
-__all__ = [
-    'dashboard',
-    'stock_analysis',
-    'prediction',
-    'technical_indicators',
-    'portfolio_tracker',
-    'news_sentiment'
-]

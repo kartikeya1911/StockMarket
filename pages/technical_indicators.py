@@ -1,208 +1,214 @@
 """
-Technical Indicators Page
-Display and analyze technical indicators
+Technical Indicators Page — All indicators with trading signal summary.
 """
 
 import streamlit as st
+import pandas as pd
 from utils.stock_data import StockDataFetcher
 from utils.indicators import TechnicalIndicators
 from utils.charts import create_ma_chart, create_rsi_chart, create_macd_chart, create_bollinger_bands_chart
+from styles.theme import page_header, glass_card, signal_badge, metric_row, render_html
 import config
 
+
 def show():
-    """Display technical indicators page"""
-    
-    st.markdown("""
-        <h1 style='background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
-                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;'>📈 Technical Indicators</h1>
-        <p style='font-size: 1.1rem; color: #6b7280;'>Advanced technical analysis with trading signals</p>
-    """, unsafe_allow_html=True)
-    
-    # Input section
+    """Display the technical indicators page."""
+
+    page_header("Technical Indicators", "Advanced technical analysis with trading signals", "📉")
+
+    # ── Inputs ───────────────────────────────────────────────
     col1, col2 = st.columns([2, 1])
-    
     with col1:
-        ticker = st.text_input(
-            "Enter Stock Ticker",
-            value="AAPL",
-            help="e.g., AAPL, TSLA, GOOGL"
-        ).upper()
-    
+        ticker = st.text_input("Enter Stock Ticker", value="AAPL",
+                               help="e.g., AAPL, TSLA, GOOGL").upper()
     with col2:
-        period = st.selectbox(
-            "Time Period",
-            ["6 Months", "1 Year", "2 Years"],
-            index=1
-        )
-    
-    analyze_button = st.button("📊 Analyze Indicators", type="primary")
-    
-    if analyze_button or 'indicator_data' in st.session_state:
-        if analyze_button:
-            # Fetch data
+        period = st.selectbox("Time Period", ["6 Months", "1 Year", "2 Years"], index=1)
+
+    analyze = st.button("📊 Analyze Indicators", type="primary", use_container_width=True)
+
+    if analyze or 'ti_data' in st.session_state:
+        if analyze:
             with st.spinner(config.LOADING_MESSAGES['calculating']):
                 fetcher = StockDataFetcher(ticker)
-                
                 if not fetcher.validate_ticker():
                     st.error(config.ERROR_MESSAGES['invalid_ticker'])
                     return
-                
+
                 period_map = {"6 Months": "6mo", "1 Year": "1y", "2 Years": "2y"}
                 hist_data = fetcher.get_historical_data(period=period_map[period])
-                
                 if hist_data is None or hist_data.empty:
                     st.error(config.ERROR_MESSAGES['no_data'])
                     return
-                
+
                 stock_info = fetcher.get_stock_info()
                 current_price = stock_info['current_price'] if stock_info else hist_data['Close'].iloc[-1]
-                
-                # Calculate indicators
-                tech_indicators = TechnicalIndicators(hist_data)
-                data_with_indicators = tech_indicators.calculate_all_indicators()
-            
-            # Store in session state
-            st.session_state.indicator_data = {
+
+                tech = TechnicalIndicators(hist_data)
+                data = tech.calculate_all_indicators()
+
+            st.session_state.ti_data = {
                 'ticker': ticker,
-                'data': data_with_indicators,
+                'data': data,
                 'current_price': current_price,
-                'tech_indicators': tech_indicators
+                'tech': tech,
             }
-        
-        # Retrieve from session state
-        stored_data = st.session_state.indicator_data
-        ticker = stored_data['ticker']
-        data = stored_data['data']
-        current_price = stored_data['current_price']
-        tech_indicators = stored_data['tech_indicators']
-        
-        st.success("✅ Indicators calculated successfully!")
-        
-        # Moving Averages
+
+        stored = st.session_state.ti_data
+        ticker = stored['ticker']
+        data = stored['data']
+        current_price = stored['current_price']
+        tech = stored['tech']
+
+        # Collect signals for summary
+        all_signals = {}
+
+        # ── Moving Averages ──────────────────────────────────
         st.markdown("---")
-        st.header("📊 Moving Averages")
-        
+        st.subheader("📊 Moving Averages")
+
         if 'SMA_50' in data.columns and 'SMA_200' in data.columns:
-            ma_signal = tech_indicators.get_moving_average_signal(
-                data['SMA_50'],
-                data['SMA_200']
-            )
-            
-            col1, col2 = st.columns([2, 1])
-            
-            with col2:
-                st.markdown(f"### Signal: {ma_signal['signal']}")
-                st.markdown(f"**{ma_signal['message']}**")
-            
+            ma_signal = tech.get_moving_average_signal(data['SMA_50'], data['SMA_200'])
+            all_signals['Moving Averages'] = ma_signal
+
+            col1, col2 = st.columns([2.5, 1])
             with col1:
                 fig = create_ma_chart(data, ['SMA_50', 'SMA_200'])
                 st.plotly_chart(fig, use_container_width=True)
-        
-        # RSI
-        st.markdown("---")
-        st.header("📉 RSI (Relative Strength Index)")
-        
-        if 'RSI' in data.columns:
-            current_rsi = data['RSI'].iloc[-1]
-            rsi_signal = tech_indicators.get_rsi_signal(current_rsi)
-            
-            col1, col2 = st.columns([2, 1])
-            
             with col2:
-                st.metric("Current RSI", f"{current_rsi:.2f}")
-                st.markdown(f"### {rsi_signal['signal']}")
-                st.markdown(f"**{rsi_signal['message']}**")
-                
-                # RSI interpretation
-                st.markdown("**RSI Levels:**")
-                st.markdown("- Above 70: Overbought")
-                st.markdown("- Below 30: Oversold")
-                st.markdown("- 30-70: Neutral")
-            
+                _render_signal_card("Moving Average Cross", ma_signal)
+
+        # ── RSI ──────────────────────────────────────────────
+        st.markdown("---")
+        st.subheader("📉 RSI (Relative Strength Index)")
+
+        if 'RSI' in data.columns:
+            rsi_val = data['RSI'].iloc[-1]
+            rsi_signal = tech.get_rsi_signal(rsi_val)
+            all_signals['RSI'] = rsi_signal
+
+            col1, col2 = st.columns([2.5, 1])
             with col1:
                 fig = create_rsi_chart(data)
                 st.plotly_chart(fig, use_container_width=True)
-        
-        # MACD
+            with col2:
+                _render_signal_card("RSI", rsi_signal, extra=f"Value: {rsi_val:.2f}")
+
+        # ── MACD ─────────────────────────────────────────────
         st.markdown("---")
-        st.header("📊 MACD (Moving Average Convergence Divergence)")
-        
+        st.subheader("📊 MACD")
+
         if 'MACD' in data.columns:
             macd_data = {
                 'macd': data['MACD'],
                 'signal': data['MACD_Signal'],
-                'histogram': data['MACD_Histogram']
+                'histogram': data['MACD_Histogram'],
             }
-            macd_signal = tech_indicators.get_macd_signal(macd_data)
-            
-            col1, col2 = st.columns([2, 1])
-            
-            with col2:
-                st.markdown(f"### {macd_signal['signal']}")
-                st.markdown(f"**{macd_signal['message']}**")
-                
-                # MACD values
-                st.metric("MACD", f"{data['MACD'].iloc[-1]:.2f}")
-                st.metric("Signal", f"{data['MACD_Signal'].iloc[-1]:.2f}")
-                st.metric("Histogram", f"{data['MACD_Histogram'].iloc[-1]:.2f}")
-            
+            macd_signal = tech.get_macd_signal(macd_data)
+            all_signals['MACD'] = macd_signal
+
+            col1, col2 = st.columns([2.5, 1])
             with col1:
                 fig = create_macd_chart(data)
                 st.plotly_chart(fig, use_container_width=True)
-        
-        # Bollinger Bands
+            with col2:
+                _render_signal_card("MACD", macd_signal,
+                                    extra=f"MACD: {data['MACD'].iloc[-1]:.4f}")
+
+        # ── Bollinger Bands ──────────────────────────────────
         st.markdown("---")
-        st.header("📈 Bollinger Bands")
-        
+        st.subheader("📈 Bollinger Bands")
+
         if 'BB_Upper' in data.columns:
             bb_data = {
                 'upper': data['BB_Upper'],
                 'middle': data['BB_Middle'],
-                'lower': data['BB_Lower']
+                'lower': data['BB_Lower'],
             }
-            bb_signal = tech_indicators.get_bollinger_signal(bb_data, current_price)
-            
-            col1, col2 = st.columns([2, 1])
-            
-            with col2:
-                st.markdown(f"### {bb_signal['signal']}")
-                st.markdown(f"**{bb_signal['message']}**")
-                
-                # Band values
-                st.metric("Upper Band", f"₹{data['BB_Upper'].iloc[-1]:.2f}")
-                st.metric("Middle Band", f"₹{data['BB_Middle'].iloc[-1]:.2f}")
-                st.metric("Lower Band", f"₹{data['BB_Lower'].iloc[-1]:.2f}")
-            
+            bb_signal = tech.get_bollinger_signal(bb_data, current_price)
+            all_signals['Bollinger Bands'] = bb_signal
+
+            col1, col2 = st.columns([2.5, 1])
             with col1:
                 fig = create_bollinger_bands_chart(data)
                 st.plotly_chart(fig, use_container_width=True)
-        
-        # Summary
+            with col2:
+                _render_signal_card("Bollinger Bands", bb_signal,
+                                    extra=f"Upper: ₹{data['BB_Upper'].iloc[-1]:.2f} | Lower: ₹{data['BB_Lower'].iloc[-1]:.2f}")
+
+        # ── Signals Summary ──────────────────────────────────
+        if all_signals:
+            st.markdown("---")
+            st.subheader("📋 Trading Signals Summary")
+
+            sig_rows = []
+            for name, sig in all_signals.items():
+                sig_rows.append({
+                    "Indicator": name,
+                    "Signal": sig.get('signal', 'N/A'),
+                    "Analysis": sig.get('message', 'N/A'),
+                })
+
+            df = pd.DataFrame(sig_rows)
+            st.dataframe(df, use_container_width=True, hide_index=True)
+
+            # Consensus
+            bullish = sum(1 for s in all_signals.values()
+                          if any(w in s.get('signal', '').lower() for w in ['bullish', 'golden', 'oversold']))
+            bearish = sum(1 for s in all_signals.values()
+                          if any(w in s.get('signal', '').lower() for w in ['bearish', 'death', 'overbought']))
+            total = len(all_signals)
+
+            if bullish > bearish:
+                consensus = "Bullish"
+                color = "#00C853"
+            elif bearish > bullish:
+                consensus = "Bearish"
+                color = "#FF5252"
+            else:
+                consensus = "Neutral"
+                color = "#FFD740"
+
+            render_html(f"""
+            <div style="
+                background: {color}15;
+                border: 1px solid {color}44;
+                border-radius: 12px;
+                padding: 1rem 1.5rem;
+                text-align: center;
+                margin: 1rem 0;
+            ">
+                <p style="color: #78909C; margin: 0; font-size: 0.85rem;">Multi-Indicator Consensus</p>
+                <h3 style="color: {color}; margin: 0.3rem 0;">{consensus}</h3>
+                <p style="color: #78909C; margin: 0; font-size: 0.85rem;">
+                    {bullish} Bullish · {bearish} Bearish · {total - bullish - bearish} Neutral
+                </p>
+            </div>
+            """)
+
         st.markdown("---")
-        st.header("📋 Trading Signals Summary")
-        
-        signals_df = {
-            "Indicator": ["Moving Averages", "RSI", "MACD", "Bollinger Bands"],
-            "Signal": [
-                ma_signal['signal'],
-                rsi_signal['signal'],
-                macd_signal['signal'],
-                bb_signal['signal']
-            ],
-            "Recommendation": [
-                ma_signal['message'],
-                rsi_signal['message'],
-                macd_signal['message'],
-                bb_signal['message']
-            ]
-        }
-        
-        import pandas as pd
-        st.dataframe(pd.DataFrame(signals_df), use_container_width=True, hide_index=True)
-        
-        # Disclaimer
         st.info("""
-        **⚠️ Important:** Technical indicators are tools for analysis and should not be used
-        in isolation. Always consider multiple factors and consult with financial professionals
-        before making investment decisions.
+        **⚠️ Important:** Technical indicators should not be used in isolation.
+        Use the **🤖 AI Intelligence** page for comprehensive multi-factor analysis.
         """)
+
+
+def _render_signal_card(title: str, signal: dict, extra: str = ""):
+    """Render a signal card in the sidebar-like right column."""
+    sig_text = signal.get('signal', 'N/A')
+    msg = signal.get('message', '')
+    color_map = {
+        'green': '#00C853', 'red': '#FF5252', 'orange': '#FFD740',
+        'lightgreen': '#00C853', 'gray': '#78909C',
+    }
+    color = color_map.get(signal.get('color', 'gray'), '#78909C')
+
+    content = f"""
+        <p style="color: #78909C; font-size: 0.8rem; margin: 0;">{title}</p>
+        <p style="color: {color}; font-size: 1.1rem; font-weight: 700; margin: 0.3rem 0;">{sig_text}</p>
+        <p style="color: #E8EAF6; font-size: 0.85rem; margin: 0;">{msg}</p>
+    """
+    if extra:
+        content += f'<p style="color: #78909C; font-size: 0.8rem; margin: 0.3rem 0 0 0;">{extra}</p>'
+
+    render_html(glass_card(content))
+

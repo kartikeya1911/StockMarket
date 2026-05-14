@@ -53,25 +53,32 @@ class StockDataFetcher:
         self.info = None
         self.session = YF_SESSION
 
-    def _with_retry(self, fn, *, attempts=4, backoff=1.5, label="call"):
-        """Retry wrapper for yfinance calls that may hit 429s."""
+    def _with_retry(self, fn, *, attempts=5, backoff=2.0, label="call"):
+        """Retry wrapper for yfinance calls that may hit 401/429 errors."""
         delay = backoff
         last_exc = None
-        for _ in range(attempts):
+        for attempt in range(attempts):
             try:
                 return fn()
             except Exception as exc:
                 last_exc = exc
-                if "429" not in str(exc):
-                    break
-                time.sleep(delay)
-                delay *= 1.5
+                err_str = str(exc)
+                # Retry on rate-limit (429) or auth (401) errors
+                if "429" in err_str or "401" in err_str:
+                    time.sleep(delay)
+                    delay *= 1.5
+                    # On 401, refresh the session/ticker to get new cookies
+                    if "401" in err_str:
+                        self.stock = None
+                        self.info = None
+                    continue
+                break
         raise last_exc if last_exc else Exception(f"Failed {label}")
 
     def _ensure_stock(self):
-        """Instantiate yfinance Ticker with retry-capable session."""
+        """Instantiate yfinance Ticker."""
         if self.stock is None:
-            self.stock = yf.Ticker(self.ticker, session=self.session)
+            self.stock = yf.Ticker(self.ticker)
         return self.stock
 
     def _fetch_quote_json(self):
@@ -136,7 +143,7 @@ class StockDataFetcher:
             # First attempt fast_info to avoid Yahoo quote 401s
             try:
                 fast = self._get_fast_info()
-                price = fast.get("last_price") or fast.get("regular_market_price") or fast.get("previous_close")
+                price = fast.get("lastPrice") or fast.get("previousClose")
             except Exception as e:
                 if "429" in str(e):
                     st.warning("Yahoo rate limit hit while validating ticker. Please retry in a moment or switch network.")
@@ -198,15 +205,17 @@ class StockDataFetcher:
                     try:
                         fast = self._get_fast_info()
                         q = {
-                            "regularMarketPrice": fast.get("last_price") or fast.get("regular_market_price"),
-                            "regularMarketPreviousClose": fast.get("previous_close") or fast.get("regular_market_previous_close"),
+                            "regularMarketPrice": fast.get("lastPrice"),
+                            "regularMarketPreviousClose": fast.get("previousClose") or fast.get("regularMarketPreviousClose"),
                             "longName": self.ticker,
                             "shortName": self.ticker,
                         }
-                    except Exception:
+                    except Exception as exc:
+                        import traceback; traceback.print_exc()
                         st.error("Unable to fetch stock info due to Yahoo 401 response.")
                         return None
                 else:
+                    import traceback; traceback.print_exc()
                     raise
             price = q.get("regularMarketPrice") or q.get("postMarketPrice")
             previous_close = q.get("regularMarketPreviousClose") or q.get("postMarketPrice")
@@ -219,10 +228,10 @@ class StockDataFetcher:
             if (price in (None, 0)) or (previous_close in (None, 0)):
                 try:
                     fast = self._get_fast_info()
-                    price = price or fast.get("last_price") or fast.get("regular_market_price")
-                    previous_close = previous_close or fast.get("previous_close") or fast.get("regular_market_previous_close")
-                    day_high = day_high or fast.get("day_high") or fast.get("regular_market_day_high")
-                    day_low = day_low or fast.get("day_low") or fast.get("regular_market_day_low")
+                    price = price or fast.get("lastPrice")
+                    previous_close = previous_close or fast.get("previousClose") or fast.get("regularMarketPreviousClose")
+                    day_high = day_high or fast.get("dayHigh")
+                    day_low = day_low or fast.get("dayLow")
                 except Exception:
                     pass
 
@@ -250,6 +259,33 @@ class StockDataFetcher:
             volume = volume or 0
             market_cap = market_cap or 0
 
+            # Fetch deeper fundamentals from yf.info
+            fundamentals = {}
+            try:
+                self._ensure_stock()
+                fundamentals = self._with_retry(lambda: self.stock.info, attempts=2, backoff=1.0, label="info")
+            except Exception:
+                pass
+
+            # Calculate CAGR (3Y & 5Y)
+            cagr_3y = 0
+            cagr_5y = 0
+            if price and price > 0:
+                try:
+                    hist_5y = self.get_historical_data(period="5y", interval="1mo")
+                    if hist_5y is not None and not hist_5y.empty and "Close" in hist_5y:
+                        if len(hist_5y) >= 36:
+                            price_3y_ago = float(hist_5y.iloc[-36]['Close'])
+                            if price_3y_ago > 0:
+                                cagr_3y = (price / price_3y_ago) ** (1/3) - 1
+                        
+                        if len(hist_5y) >= 55:  # Allow some wiggle room for months
+                            price_5y_ago = float(hist_5y.iloc[0]['Close'])
+                            if price_5y_ago > 0:
+                                cagr_5y = (price / price_5y_ago) ** (1/5) - 1
+                except Exception:
+                    pass
+
             stock_info = {
                 'symbol': self.ticker,
                 'name': q.get('longName') or q.get('shortName') or self.ticker,
@@ -262,13 +298,19 @@ class StockDataFetcher:
                 'market_cap': market_cap,
                 '52_week_high': q.get('fiftyTwoWeekHigh') or 0,
                 '52_week_low': q.get('fiftyTwoWeekLow') or 0,
-                'pe_ratio': q.get('trailingPE') or 0,
-                'dividend_yield': q.get('dividendYield') or 0,
-                'beta': q.get('beta') or 0,
-                'sector': q.get('sector') or 'N/A',
-                'industry': q.get('industry') or 'N/A',
-                'website': q.get('website') or 'N/A',
-                'description': q.get('longBusinessSummary') or 'N/A'
+                'pe_ratio': q.get('trailingPE') or fundamentals.get('trailingPE') or 0,
+                'dividend_yield': q.get('dividendYield') or fundamentals.get('dividendYield') or 0,
+                'beta': q.get('beta') or fundamentals.get('beta') or 0,
+                'sector': q.get('sector') or fundamentals.get('sector') or 'N/A',
+                'industry': q.get('industry') or fundamentals.get('industry') or 'N/A',
+                'website': q.get('website') or fundamentals.get('website') or 'N/A',
+                'description': q.get('longBusinessSummary') or fundamentals.get('longBusinessSummary') or 'N/A',
+                # New metrics
+                'revenue_growth': fundamentals.get('revenueGrowth') or 0,
+                'quarterly_growth': fundamentals.get('earningsQuarterlyGrowth') or 0,
+                'roe': fundamentals.get('returnOnEquity') or 0,
+                'cagr_3y': cagr_3y,
+                'cagr_5y': cagr_5y,
             }
             
             return stock_info
@@ -523,11 +565,14 @@ def format_large_number(num):
     Returns:
         str: Formatted number string
     """
-    if num == 0:
+    if num == 0 or num is None:
         return "0"
     
     try:
+        import math
         num = float(num)
+        if math.isnan(num):
+            return "N/A"
         if abs(num) >= 1e12:
             return f"{num/1e12:.2f}T"
         elif abs(num) >= 1e9:
@@ -554,6 +599,9 @@ def format_currency(amount, currency="₹"):
         str: Formatted currency string
     """
     try:
+        import math
+        if amount is None or (isinstance(amount, float) and math.isnan(amount)):
+            return f"{currency}0.00"
         # Indian numbering system (lakhs and crores)
         if amount >= 10000000:  # 1 crore
             return f"{currency}{amount/10000000:.2f} Cr"
@@ -562,7 +610,7 @@ def format_currency(amount, currency="₹"):
         else:
             return f"{currency}{amount:,.2f}"
     except:
-        return f"{currency}{amount}"
+        return f"{currency}0.00"
 
 
 def calculate_returns(data, period="daily"):
